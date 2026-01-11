@@ -8,6 +8,14 @@
   ],
   "routes": [
     {
+      "src": "/health",
+      "dest": "server.js"
+    },
+    {
+      "src": "/api/scrape-listing",
+      "dest": "server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "server.js"
     }
