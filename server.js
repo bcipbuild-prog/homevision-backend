@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -7,8 +8,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-const cache = new Map();
-const CACHE_DURATION = 1000 * 60 * 60;
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.post('/api/scrape-listing', async (req, res) => {
   const { url } = req.body;
@@ -17,51 +19,15 @@ app.post('/api/scrape-listing', async (req, res) => {
     return res.status(400).json({ error: 'URL is required' });
   }
 
-  if (cache.has(url)) {
-    const cached = cache.get(url);
-    if (Date.now() - cached.timestamp < CACHE_DURATION) {
-      return res.json({ images: cached.images });
-    }
-  }
+  // For now, return mock data
+  // This lets us test the frontend while we fix the scraping
+  const mockImages = [
+    'https://photos.zillowstatic.com/fp/example1.jpg',
+    'https://photos.zillowstatic.com/fp/example2.jpg',
+    'https://photos.zillowstatic.com/fp/example3.jpg'
+  ];
 
-  try {
-    // Use a simple fetch to get the page HTML
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    const html = await response.text();
-    
-    // Extract image URLs using regex (simple but effective)
-    const imageRegex = /(https?:\/\/[^\s"'<>]+?\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
-    let images = [...new Set(html.match(imageRegex) || [])];
-    
-    // Filter for larger images (likely property photos)
-    images = images.filter(img => 
-      !img.includes('logo') && 
-      !img.includes('icon') &&
-      !img.includes('avatar') &&
-      img.length > 50
-    ).slice(0, 20); // Limit to 20 images
-
-    cache.set(url, { images, timestamp: Date.now() });
-    res.json({ images });
-
-  } catch (error) {
-    console.error('Scraping error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch listing images',
-      details: error.message 
-    });
-  }
+  res.json({ images: mockImages });
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+module.exports = app;
